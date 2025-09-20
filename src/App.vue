@@ -1,7 +1,13 @@
 <template>
   <div class="container todo-app">
     <h1 class="title">Todo List</h1>
-    <TodoForm @add-todo="addTodo" />
+
+    <form class="form">
+      <div class="form__group form__group--todo">
+        <input class="form-control" type="text" placeholder="Новая задача"/>
+        <button class="btn btn--add-todo" type="submit">Добавить</button>
+      </div>
+    </form>
 
     <TodoList :todos="todos" @remove-todo="removeTodo" />
 
@@ -16,7 +22,6 @@
 
 <script setup>
 import { reactive, computed } from 'vue'
-import TodoForm from './components/TodoForm.vue'
 import TodoList from './components/TodoList.vue'
 import TodoFooter from './components/TodoFooter.vue'
 
@@ -25,10 +30,6 @@ const todos = reactive([
   { id: 2, text: 'Создать TodoList приложение', completed: false },
   { id: 3, text: 'Похвалить себя за отличную работу', completed: false },
 ])
-
-const addTodo = (newTodo) => {
-  todos.push({ id: Date.now(), text: newTodo, completed: false })
-}
 
 const removeTodo = (index) => {
   todos.splice(index, 1)
