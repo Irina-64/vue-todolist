@@ -3,7 +3,7 @@
     <h1 class="title">Todo List</h1>
     <TodoForm @add-todo="addTodo" />
 
-    <TodoList :todos="todos" @remove-todo="removeTodo" />
+    <TodoList :todos="todos" @remove-todo="removeTodo" @complete-todo="completeTodo"/>
 
     <TodoFooter
       v-if="todos.length"
@@ -11,27 +11,52 @@
       @clear-completed="clearCompleted"
       @clear-all="clearAll"
     />
+
+    <div v-show="isLoading">Загрузка...</div>
+    <div v-show="error">Произошла ошибка: {{ error }}</div>
   </div>
 </template>
 
 <script setup>
-import { reactive, computed } from 'vue'
+import { reactive, computed, onMounted } from 'vue'
 import TodoForm from './components/TodoForm.vue'
 import TodoList from './components/TodoList.vue'
 import TodoFooter from './components/TodoFooter.vue'
+import { useFetch } from './composables/useFetch'
 
-const todos = reactive([
-  { id: 1, text: 'Изучить компоненты Vue.js', completed: true },
-  { id: 2, text: 'Создать TodoList приложение', completed: false },
-  { id: 3, text: 'Похвалить себя за отличную работу', completed: false },
-])
+const todos = reactive([])
+const { isLoading, error, fetchData } = useFetch();
+
+
+const fetchTodos = async () => {
+  const response = await fetchData('http://localhost:3000/todos');
+  todos.splice(0, todos.length, ...response);
+};
 
 const addTodo = (newTodo) => {
-  todos.push({ id: Date.now(), text: newTodo, completed: false })
+  fetchData('http://localhost:3000/todos', {
+    method: 'POST',
+    body: { id: Date.now().toString(), text: newTodo, completed: false },
+  }).then(() => {
+    fetchTodos();
+  });
 }
 
-const removeTodo = (index) => {
-  todos.splice(index, 1)
+const removeTodo = (id) => {
+  fetchData(`http://localhost:3000/todos/${id}`, {
+    method: 'DELETE'
+  }).then(() => {
+    fetchTodos();
+  });
+}
+
+const completeTodo = (todo) => {
+  fetchData(`http://localhost:3000/todos/${todo.id}`, {
+    method: 'PATCH',
+    body: { completed: !todo.completed },
+  }).then(() => {
+    fetchTodos();
+  });
 }
 
 const remainingTodos = computed(() =>
@@ -41,14 +66,20 @@ const remainingTodos = computed(() =>
 const clearCompleted = () => {
   for (let i = todos.length - 1; i >= 0; i--) {
     if (todos[i].completed) {
-      todos.splice(i, 1)
+      removeTodo(todos[i].id)
     }
   }
 }
 
 const clearAll = () => {
-  todos.splice(0, todos.length)
+  for (let i = todos.length - 1; i >= 0; i--) {
+    removeTodo(todos[i].id)
+  }
 }
+
+onMounted(() => {
+  fetchTodos()
+})
 </script>
 
 <style src="./App.css"></style>
